@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/sesion.php';
 
-exigirUsuario($conexion);
+exigirUsuario();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Allow: POST');
