@@ -1,4 +1,5 @@
-?php
+<?php
+
 declare(strict_types=1);
 
 ini_set('session.use_strict_mode', '1');
@@ -17,6 +18,7 @@ session_start();
 header('Content-Type: text/html; charset=UTF-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
+
 header(
     "Content-Security-Policy: default-src 'self'; "
     . "style-src 'self'; form-action 'self'; "
@@ -90,11 +92,13 @@ function exigirUsuario(): array
     );
 
     $consulta->execute([$_SESSION['id_usuario']]);
+
     $usuario = $consulta->fetch();
 
     if (!$usuario) {
         $_SESSION = [];
         session_destroy();
+
         redirigir('login.php');
     }
 
@@ -137,6 +141,7 @@ function obtenerContacto(int $id, int $idUsuario): array
     );
 
     $consulta->execute([$id, $idUsuario]);
+
     $contacto = $consulta->fetch();
 
     if (!$contacto) {
@@ -150,9 +155,11 @@ function obtenerContacto(int $id, int $idUsuario): array
 function categorias(): array
 {
     return conexion()->query(
-        'SELECT id, nombre FROM categorias ORDER BY id'
+        'SELECT id, nombre
+         FROM categorias
+         ORDER BY id'
     )->fetchAll();
-}<
+}
 
 function mensaje(string $texto): void
 {
@@ -166,9 +173,14 @@ function inicio(string $titulo): void
     <html lang="es">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1">
+
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1"
+        >
+
         <title><?= escapar($titulo) ?> · Mi agenda</title>
+
         <link rel="stylesheet" href="estilos.css">
     </head>
     <body>
@@ -207,6 +219,7 @@ function errores(array $lista): void
 
 function fin(): void
 {
-    echo '<footer>Agenda personal · PHP + MySQL · Versión 2</footer>';
-    echo '</main></body></html>';
+    echo '<footer>'
+        . 'Agenda personal · PHP + MySQL · Versión 2'
+        . '</footer></main></body></html>';
 }
