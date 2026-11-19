@@ -1,15 +1,19 @@
 <?php
+
 require_once __DIR__ . '/sesion.php';
 
+// Verificar que exista una sesión activa.
 $usuario = exigirUsuario();
 $idUsuario = (int) $usuario['id'];
 
+// Si existe un identificador, se editará el contacto.
 $id = isset($_GET['id'])
     ? obtenerIdContacto()
     : null;
 
-$categorias = categorias();
+$listaCategorias = categorias();
 
+// Consultar únicamente un contacto del usuario autenticado.
 $contacto = $id !== null
     ? obtenerContacto($id, $idUsuario)
     : [
@@ -18,7 +22,7 @@ $contacto = $id !== null
         'correo' => '',
         'ciudad' => '',
         'id_categoria' => '',
-        'favorito' => 0
+        'favorito' => 0,
     ];
 
 $listaErrores = [];
@@ -26,28 +30,33 @@ $listaErrores = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verificarToken();
 
-    foreach (
-        ['nombre', 'telefono', 'correo', 'ciudad', 'id_categoria']
-        as $campo
-    ) {
-        $contacto[$campo] = entrada($campo);
-    }
+    $contacto['nombre'] = entrada('nombre');
+    $contacto['telefono'] = entrada('telefono');
+    $contacto['correo'] = entrada('correo');
+    $contacto['ciudad'] = entrada('ciudad');
+    $contacto['id_categoria'] = entrada('id_categoria');
 
-    $contacto['favorito'] = entrada('favorito') === '1' ? 1 : 0;
+    $contacto['favorito'] = entrada('favorito') === '1'
+        ? 1
+        : 0;
 
+    // Validar el nombre en el servidor.
     if (
         $contacto['nombre'] === ''
         || strlen($contacto['nombre']) > 150
     ) {
-        $listaErrores[] = 'Ingrese un nombre válido, de hasta 150 bytes.';
+        $listaErrores[] =
+            'Ingrese un nombre válido de hasta 150 bytes.';
     }
 
+    // Contar los números del teléfono.
     $digitos = preg_replace(
         '/[^0-9]/',
         '',
         $contacto['telefono']
     );
 
+    // Rechazar teléfonos que solo contengan símbolos.
     if (
         !preg_match(
             '/^[+0-9() .-]{6,30}$/D',
@@ -56,30 +65,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         || strlen($digitos) < 6
     ) {
         $listaErrores[] =
-            'Ingrese un teléfono de 6 a 30 caracteres '
-            . 'con al menos 6 dígitos.';
+            'El teléfono debe contener al menos 6 dígitos '
+            . 'y no superar los 30 caracteres. '
+            . 'Solo se permiten números, espacios, '
+            . 'paréntesis y los símbolos +, - y punto.';
     }
 
+    // Validar el formato y la longitud del correo.
     if (
-        !filter_var($contacto['correo'], FILTER_VALIDATE_EMAIL)
+        !filter_var(
+            $contacto['correo'],
+            FILTER_VALIDATE_EMAIL
+        )
         || strlen($contacto['correo']) > 190
     ) {
-        $listaErrores[] = 'Ingrese un correo válido.';
+        $listaErrores[] =
+            'Ingrese un correo electrónico válido '
+            . 'de hasta 190 bytes.';
     }
 
+    // Validar la ciudad en el servidor.
     if (
         $contacto['ciudad'] === ''
         || strlen($contacto['ciudad']) > 100
     ) {
-        $listaErrores[] = 'Ingrese una ciudad válida, de hasta 100 bytes.';
+        $listaErrores[] =
+            'Ingrese una ciudad válida de hasta 100 bytes.';
     }
 
-    $ids = array_map(
+    // Comprobar que la categoría exista.
+    $idsCategorias = array_map(
         'strval',
-        array_column($categorias, 'id')
+        array_column($listaCategorias, 'id')
     );
 
-    if (!in_array($contacto['id_categoria'], $ids, true)) {
+    if (
+        !in_array(
+            $contacto['id_categoria'],
+            $idsCategorias,
+            true
+        )
+    ) {
         $listaErrores[] = 'Seleccione una categoría válida.';
     }
 
@@ -90,10 +116,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $contacto['correo'],
             $contacto['ciudad'],
             $contacto['id_categoria'],
-            $contacto['favorito']
+            $contacto['favorito'],
         ];
 
         if ($id !== null) {
+            // Actualizar únicamente un contacto propio.
             $consulta = conexion()->prepare(
                 'UPDATE contactos
                  SET nombre = ?,
@@ -108,18 +135,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $valores[] = $id;
             $valores[] = $idUsuario;
         } else {
+            // El propietario se obtiene de la sesión.
             $consulta = conexion()->prepare(
-                'INSERT INTO contactos
-                    (
-                        nombre,
-                        telefono,
-                        correo,
-                        ciudad,
-                        id_categoria,
-                        favorito,
-                        id_usuario
-                    )
-                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+                'INSERT INTO contactos (
+                    nombre,
+                    telefono,
+                    correo,
+                    ciudad,
+                    id_categoria,
+                    favorito,
+                    id_usuario
+                 ) VALUES (?, ?, ?, ?, ?, ?, ?)'
             );
 
             $valores[] = $idUsuario;
@@ -137,50 +163,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-inicio($id !== null ? 'Editar contacto' : 'Nuevo contacto');
+inicio(
+    $id !== null
+        ? 'Editar contacto'
+        : 'Nuevo contacto'
+);
+
 errores($listaErrores);
+
 ?>
 
 <form method="post" class="formulario">
     <?php campoToken(); ?>
 
-    <?php
-    $campos = [
-        'nombre' => ['Nombre', 'text', 150],
-        'telefono' => ['Teléfono', 'tel', 30],
-        'correo' => ['Correo electrónico', 'email', 190],
-        'ciudad' => ['Ciudad', 'text', 100]
-    ];
-    ?>
+    <label for="nombre">Nombre del contacto</label>
+    <input
+        id="nombre"
+        type="text"
+        name="nombre"
+        maxlength="150"
+        value="<?= escapar($contacto['nombre']) ?>"
+        required
+    >
 
-    <?php foreach ($campos as $campo => $datos): ?>
-        <label for="<?= escapar($campo) ?>">
-            <?= escapar($datos[0]) ?>
-        </label>
+    <label for="telefono">Teléfono</label>
+    <input
+        id="telefono"
+        type="tel"
+        name="telefono"
+        maxlength="30"
+        value="<?= escapar($contacto['telefono']) ?>"
+        placeholder="Ejemplo: 0991234567"
+        required
+    >
 
-        <input
-            id="<?= escapar($campo) ?>"
-            name="<?= escapar($campo) ?>"
-            type="<?= escapar($datos[1]) ?>"
-            maxlength="<?= (int) $datos[2] ?>"
-            value="<?= escapar($contacto[$campo]) ?>"
-            required
-        >
-    <?php endforeach; ?>
+    <label for="correo">Correo electrónico</label>
+    <input
+        id="correo"
+        type="email"
+        name="correo"
+        maxlength="190"
+        value="<?= escapar($contacto['correo']) ?>"
+        required
+    >
+
+    <label for="ciudad">Ciudad</label>
+    <input
+        id="ciudad"
+        type="text"
+        name="ciudad"
+        maxlength="100"
+        value="<?= escapar($contacto['ciudad']) ?>"
+        required
+    >
 
     <label for="id_categoria">Categoría</label>
     <select id="id_categoria" name="id_categoria" required>
         <option value="">Seleccione una categoría</option>
 
-        <?php foreach ($categorias as $cat): ?>
+        <?php foreach ($listaCategorias as $categoria): ?>
             <option
-                value="<?= (int) $cat['id'] ?>"
+                value="<?= (int) $categoria['id'] ?>"
                 <?= (string) $contacto['id_categoria']
-                    === (string) $cat['id']
-                        ? 'selected'
-                        : '' ?>
+                    === (string) $categoria['id']
+                    ? 'selected'
+                    : '' ?>
             >
-                <?= escapar($cat['nombre']) ?>
+                <?= escapar($categoria['nombre']) ?>
             </option>
         <?php endforeach; ?>
     </select>
@@ -198,7 +247,7 @@ errores($listaErrores);
     </label>
 
     <div class="barra">
-        <button>Guardar contacto</button>
+        <button type="submit">Guardar contacto</button>
         <a href="panel.php">Cancelar</a>
     </div>
 </form>
