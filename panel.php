@@ -1,113 +1,264 @@
 <?php
 require_once __DIR__ . '/sesion.php';
 
-$usuario = exigirUsuario($conexion);
+$usuario = exigirUsuario();
+$categorias = categorias();
+$ordenes = ordenesPermitidos();
 
-$consulta = $conexion->prepare(
-    'SELECT id, nombre, telefono, correo, ciudad
-     FROM contactos
-     WHERE id_usuario = ?
-     ORDER BY nombre, id'
+$qTexto = parametro('q');
+
+if (strlen($qTexto) > 190) {
+    http_response_code(400);
+    exit('La búsqueda debe tener hasta 190 bytes.');
+}
+
+$orden = parametro('orden');
+
+if (!array_key_exists($orden, $ordenes)) {
+    $orden = 'nombre';
+}
+
+$categoria = parametro('categoria');
+$ids = array_map('strval', array_column($categorias, 'id'));
+
+if (
+    $categoria !== ''
+    && !in_array($categoria, $ids, true)
+) {
+    http_response_code(400);
+    exit('Categoría inválida.');
+}
+
+$filtros = [
+    'q' => $qTexto,
+    'orden' => $orden,
+    'categoria' => $categoria,
+    'favoritos' => parametro('favoritos') === '1' ? '1' : ''
+];
+
+$urlPanel = 'panel.php?' . http_build_query($filtros);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verificarToken();
+
+    if (entrada('accion') !== 'favorito') {
+        http_response_code(400);
+        exit('Acción inválida.');
+    }
+
+    $id = idPositivo($_POST['id'] ?? null);
+
+    if ($id === null) {
+        http_response_code(404);
+        exit('Contacto no encontrado.');
+    }
+
+    obtenerContacto($id, (int) $usuario['id']);
+
+    $consulta = conexion()->prepare(
+        'UPDATE contactos
+         SET favorito = 1 - favorito
+         WHERE id = ? AND id_usuario = ?'
+    );
+
+    $consulta->execute([$id, $usuario['id']]);
+
+    mensaje('Favorito actualizado.');
+    redirigir($urlPanel);
+}
+
+[$sql, $valores] = consultaContactos(
+    (int) $usuario['id'],
+    $filtros
 );
 
-$consulta->execute([$usuario['id']]);
+$consulta = conexion()->prepare($sql);
+$consulta->execute($valores);
 $contactos = $consulta->fetchAll();
+
+inicio('Mis contactos');
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1">
-    <title>Mis contactos</title>
-    <link rel="stylesheet" href="estilos.css">
-</head>
-<body>
-<main class="contenedor">
-    <header class="barra">
-        <div>
-            <h1>Mi agenda personal</h1>
-
-            <p>
-                <strong>Nombre:</strong>
-                <?= escapar($usuario['nombre']) ?>
-                <br>
-                <strong>Correo:</strong>
-                <?= escapar($usuario['correo']) ?>
-            </p>
-        </div>
-
-        <form method="post" action="logout.php">
-            <?php campoToken(); ?>
-
-            <button type="submit" class="secundario">
-                Cerrar sesión
-            </button>
-        </form>
-    </header>
-
-    <div class="barra">
-        <h2>Mis contactos (<?= count($contactos) ?>)</h2>
-
-        <a href="contacto.php" class="boton">
-            + Nuevo contacto
-        </a>
+<section class="perfil">
+    <div>
+        <strong><?= escapar($usuario['nombre']) ?></strong>
+        <span><?= escapar($usuario['correo']) ?></span>
     </div>
 
-    <?php if (!$contactos): ?>
-        <p class="vacio">
-            Todavía no tiene contactos registrados.
-            Seleccione «Nuevo contacto» para comenzar.
-        </p>
-    <?php else: ?>
-        <div class="tabla-responsive">
-            <table>
-                <thead>
+    <form method="post" action="logout.php">
+        <?php campoToken(); ?>
+        <button class="secundario">Cerrar sesión</button>
+    </form>
+</section>
+
+<div class="barra">
+    <p><?= count($contactos) ?> contacto(s) en esta vista</p>
+    <a class="boton" href="contacto.php">+ Nuevo contacto</a>
+</div>
+
+<form method="get" action="panel.php" class="filtros">
+    <div>
+        <label for="q">Buscar por nombre, correo o ciudad</label>
+        <input
+            id="q"
+            name="q"
+            type="search"
+            maxlength="190"
+            placeholder="Ej.: Ana, @example.com o Quito"
+            value="<?= escapar($qTexto) ?>"
+        >
+    </div>
+
+    <div>
+        <label for="orden">Ordenar por</label>
+        <select id="orden" name="orden">
+            <?php foreach ($ordenes as $clave => $datos): ?>
+                <option
+                    value="<?= escapar($clave) ?>"
+                    <?= $orden === $clave ? 'selected' : '' ?>
+                >
+                    <?= escapar($datos[0]) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+
+    <div>
+        <label for="categoria">Categoría</label>
+        <select id="categoria" name="categoria">
+            <option value="">Todas</option>
+
+            <?php foreach ($categorias as $cat): ?>
+                <option
+                    value="<?= (int) $cat['id'] ?>"
+                    <?= $categoria === (string) $cat['id']
+                        ? 'selected'
+                        : '' ?>
+                >
+                    <?= escapar($cat['nombre']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+
+    <label class="check">
+        <input
+            type="checkbox"
+            name="favoritos"
+            value="1"
+            <?= $filtros['favoritos'] === '1' ? 'checked' : '' ?>
+        >
+        Solo favoritos
+    </label>
+
+    <div class="barra-filtros">
+        <button>Aplicar</button>
+        <a href="panel.php">Limpiar filtros</a>
+    </div>
+</form>
+
+<?php if (!$contactos): ?>
+    <p class="vacio">
+        No hay contactos para esta vista.
+        Puede agregar uno o limpiar los filtros.
+    </p>
+<?php else: ?>
+    <div class="tabla-responsive">
+        <table>
+            <thead>
                 <tr>
+                    <th>Favorito</th>
                     <th>Nombre</th>
                     <th>Teléfono</th>
                     <th>Correo</th>
                     <th>Ciudad</th>
+                    <th>Categoría</th>
+                    <th>Fecha de creación</th>
                     <th>Acciones</th>
                 </tr>
-                </thead>
+            </thead>
 
-                <tbody>
-                <?php foreach ($contactos as $contacto): ?>
-                    <tr>
-                        <td>
+            <tbody>
+            <?php foreach ($contactos as $contacto): ?>
+                <tr>
+                    <td>
+                        <form
+                            method="post"
+                            action="<?= escapar($urlPanel) ?>"
+                        >
+                            <?php campoToken(); ?>
+
+                            <input
+                                type="hidden"
+                                name="accion"
+                                value="favorito"
+                            >
+
+                            <input
+                                type="hidden"
+                                name="id"
+                                value="<?= (int) $contacto['id'] ?>"
+                            >
+
+                            <button
+                                class="estrella"
+                                aria-label="<?= escapar(
+                                    (
+                                        (int) $contacto['favorito'] === 1
+                                            ? 'Quitar de favoritos: '
+                                            : 'Marcar favorito: '
+                                    ) . $contacto['nombre']
+                                ) ?>"
+                                aria-pressed="<?=
+                                    (int) $contacto['favorito'] === 1
+                                        ? 'true'
+                                        : 'false'
+                                ?>"
+                            >
+                                <?= (int) $contacto['favorito'] === 1
+                                    ? '★'
+                                    : '☆' ?>
+                            </button>
+                        </form>
+                    </td>
+
+                    <td>
+                        <strong>
                             <?= escapar($contacto['nombre']) ?>
-                        </td>
-                        <td>
-                            <?= escapar($contacto['telefono']) ?>
-                        </td>
-                        <td>
-                            <?= escapar($contacto['correo']) ?>
-                        </td>
-                        <td>
-                            <?= escapar($contacto['ciudad']) ?>
-                        </td>
-                        <td class="acciones">
-                            <a
-                                href="contacto.php?id=<?= (int) $contacto['id'] ?>"
-                            >
-                                Editar
-                            </a>
+                        </strong>
+                    </td>
 
-                            <a
-                                href="eliminar.php?id=<?= (int) $contacto['id'] ?>"
-                                class="enlace-peligro"
-                            >
-                                Eliminar
-                            </a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    <?php endif; ?>
-</main>
-</body>
-</html>
+                    <td><?= escapar($contacto['telefono']) ?></td>
+                    <td><?= escapar($contacto['correo']) ?></td>
+                    <td><?= escapar($contacto['ciudad']) ?></td>
+
+                    <td>
+                        <span class="etiqueta">
+                            <?= escapar($contacto['categoria_nombre']) ?>
+                        </span>
+                    </td>
+
+                    <td>
+                        <?= escapar($contacto['fecha_creacion']) ?>
+                    </td>
+
+                    <td class="acciones">
+                        <a href="contacto.php?id=<?= (int) $contacto['id'] ?>">
+                            Editar
+                        </a>
+
+                        <a
+                            class="enlace-peligro"
+                            href="eliminar.php?id=<?= (int) $contacto['id'] ?>"
+                        >
+                            Eliminar
+                        </a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+<?php endif; ?>
+
+<?php fin(); ?>
