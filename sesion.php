@@ -1,4 +1,4 @@
-<?php
+?php
 declare(strict_types=1);
 
 ini_set('session.use_strict_mode', '1');
@@ -9,7 +9,7 @@ session_set_cookie_params([
     'httponly' => true,
     'secure' => !empty($_SERVER['HTTPS'])
         && $_SERVER['HTTPS'] !== 'off',
-    'samesite' => 'Lax'
+    'samesite' => 'Lax',
 ]);
 
 session_start();
@@ -24,15 +24,14 @@ header(
 );
 
 require_once __DIR__ . '/conexion.php';
+require_once __DIR__ . '/consultas.php';
 
-if (empty($_SESSION['csrf'])) {
-    $_SESSION['csrf'] = bin2hex(random_bytes(32));
-}
+$_SESSION['csrf'] ??= bin2hex(random_bytes(32));
 
-function escapar(string $texto): string
+function escapar($texto): string
 {
     return htmlspecialchars(
-        $texto,
+        (string) $texto,
         ENT_QUOTES | ENT_SUBSTITUTE,
         'UTF-8'
     );
@@ -41,6 +40,13 @@ function escapar(string $texto): string
 function entrada(string $campo): string
 {
     $valor = $_POST[$campo] ?? '';
+
+    return is_string($valor) ? trim($valor) : '';
+}
+
+function parametro(string $campo): string
+{
+    $valor = $_GET[$campo] ?? '';
 
     return is_string($valor) ? trim($valor) : '';
 }
@@ -71,13 +77,13 @@ function verificarToken(): void
     }
 }
 
-function exigirUsuario(PDO $conexion): array
+function exigirUsuario(): array
 {
     if (empty($_SESSION['id_usuario'])) {
         redirigir('login.php');
     }
 
-    $consulta = $conexion->prepare(
+    $consulta = conexion()->prepare(
         'SELECT id, nombre, correo
          FROM usuarios
          WHERE id = ?'
@@ -95,33 +101,37 @@ function exigirUsuario(PDO $conexion): array
     return $usuario;
 }
 
+function idPositivo($valor): ?int
+{
+    if (!is_string($valor)) {
+        return null;
+    }
+
+    $id = filter_var(
+        $valor,
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]
+    );
+
+    return $id === false ? null : (int) $id;
+}
+
 function obtenerIdContacto(): int
 {
-    $valor = $_GET['id'] ?? null;
+    $id = idPositivo($_GET['id'] ?? null);
 
-    $id = is_string($valor)
-        ? filter_var(
-            $valor,
-            FILTER_VALIDATE_INT,
-            ['options' => ['min_range' => 1]]
-        )
-        : false;
-
-    if ($id === false) {
+    if ($id === null) {
         http_response_code(404);
         exit('Contacto no encontrado.');
     }
 
-    return (int) $id;
+    return $id;
 }
 
-function obtenerContacto(
-    PDO $conexion,
-    int $id,
-    int $idUsuario
-): array {
-    $consulta = $conexion->prepare(
-        'SELECT id, nombre, telefono, correo, ciudad
+function obtenerContacto(int $id, int $idUsuario): array
+{
+    $consulta = conexion()->prepare(
+        'SELECT *
          FROM contactos
          WHERE id = ? AND id_usuario = ?'
     );
@@ -135,4 +145,68 @@ function obtenerContacto(
     }
 
     return $contacto;
+}
+
+function categorias(): array
+{
+    return conexion()->query(
+        'SELECT id, nombre FROM categorias ORDER BY id'
+    )->fetchAll();
+}<
+
+function mensaje(string $texto): void
+{
+    $_SESSION['aviso'] = $texto;
+}
+
+function inicio(string $titulo): void
+{
+    ?>
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1">
+        <title><?= escapar($titulo) ?> · Mi agenda</title>
+        <link rel="stylesheet" href="estilos.css">
+    </head>
+    <body>
+    <main class="contenedor">
+        <header class="cabecera">
+            <a class="marca" href="index.php">Mi agenda</a>
+            <span>CONTACTOS · ESPACIO PERSONAL</span>
+        </header>
+
+        <h1><?= escapar($titulo) ?></h1>
+    <?php
+
+    if (isset($_SESSION['aviso'])) {
+        echo '<p class="exito" role="status">'
+            . escapar($_SESSION['aviso'])
+            . '</p>';
+
+        unset($_SESSION['aviso']);
+    }
+}
+
+function errores(array $lista): void
+{
+    if (!$lista) {
+        return;
+    }
+
+    echo '<div class="alerta" role="alert"><ul>';
+
+    foreach ($lista as $error) {
+        echo '<li>' . escapar($error) . '</li>';
+    }
+
+    echo '</ul></div>';
+}
+
+function fin(): void
+{
+    echo '<footer>Agenda personal · PHP + MySQL · Versión 2</footer>';
+    echo '</main></body></html>';
 }
