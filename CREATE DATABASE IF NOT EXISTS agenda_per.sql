@@ -1,29 +1,102 @@
-CREATE DATABASE IF NOT EXISTS agenda_personal
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-
-USE agenda_personal;
-
--- Tabla de usuarios
-CREATE TABLE usuarios (
+CREATE TABLE IF NOT EXISTS categorias (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(150) NOT NULL,
-    correo VARCHAR(190) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+    nombre VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
 
--- Tabla de contactos
-CREATE TABLE contactos (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT UNSIGNED NOT NULL,
-    nombre VARCHAR(150) NOT NULL,
-    telefono VARCHAR(30) NOT NULL,
-    correo VARCHAR(190) NOT NULL,
-    ciudad VARCHAR(100) NOT NULL,
+INSERT INTO categorias (nombre)
+VALUES
+    ('Familia'),
+    ('Amigos'),
+    ('Trabajo'),
+    ('Universidad'),
+    ('Otro')
+ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
 
-    CONSTRAINT fk_contactos_usuario
-        FOREIGN KEY (id_usuario)
-        REFERENCES usuarios(id)
-        ON DELETE CASCADE
-) ENGINE=InnoDB;
+-- Agregar categoría si todavía no existe.
+SET @existe = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'contactos'
+      AND COLUMN_NAME = 'id_categoria'
+);
+
+SET @sentencia = IF(
+    @existe = 0,
+    'ALTER TABLE contactos ADD COLUMN id_categoria INT UNSIGNED NULL',
+    'SELECT 1'
+);
+
+PREPARE migracion FROM @sentencia;
+EXECUTE migracion;
+DEALLOCATE PREPARE migracion;
+
+-- Agregar favorito si todavía no existe.
+SET @existe = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'contactos'
+      AND COLUMN_NAME = 'favorito'
+);
+
+SET @sentencia = IF(
+    @existe = 0,
+    'ALTER TABLE contactos ADD COLUMN favorito TINYINT UNSIGNED NOT NULL DEFAULT 0',
+    'SELECT 1'
+);
+
+PREPARE migracion FROM @sentencia;
+EXECUTE migracion;
+DEALLOCATE PREPARE migracion;
+
+-- Agregar fecha si todavía no existe.
+SET @existe = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'contactos'
+      AND COLUMN_NAME = 'fecha_creacion'
+);
+
+SET @sentencia = IF(
+    @existe = 0,
+    'ALTER TABLE contactos ADD COLUMN fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    'SELECT 1'
+);
+
+PREPARE migracion FROM @sentencia;
+EXECUTE migracion;
+DEALLOCATE PREPARE migracion;
+
+-- Asignar categoría a los contactos anteriores.
+UPDATE contactos
+SET id_categoria = (
+    SELECT id FROM categorias WHERE nombre = 'Otro'
+)
+WHERE id_categoria IS NULL;
+
+ALTER TABLE contactos
+MODIFY COLUMN id_categoria INT UNSIGNED NOT NULL;
+
+-- Relacionar contactos con categorías.
+SET @existe = (
+    SELECT COUNT(*)
+    FROM information_schema.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'contactos'
+      AND COLUMN_NAME = 'id_categoria'
+      AND REFERENCED_TABLE_NAME = 'categorias'
+);
+
+SET @sentencia = IF(
+    @existe = 0,
+    'ALTER TABLE contactos ADD CONSTRAINT fk_contactos_categoria FOREIGN KEY (id_categoria) REFERENCES categorias(id)',
+    'SELECT 1'
+);
+
+PREPARE migracion FROM @sentencia;
+EXECUTE migracion;
+DEALLOCATE PREPARE migracion;
