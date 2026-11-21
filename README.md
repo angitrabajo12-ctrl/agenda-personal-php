@@ -57,7 +57,6 @@ También se verifican desde PHP las longitudes máximas del nombre, teléfono, c
 ### Panel principal, búsqueda y ordenamiento
 <img width="1365" height="628" alt="Captura de pantalla 2026-11-21 000258" src="https://github.com/user-attachments/assets/9877ae5c-fdcf-40fd-a078-e81840637a28" />
 ### Creación o edición con categorías y favoritos
-<img width="1365" height="575" alt="image" src="https://github.com/user-attachments/assets/4e5c2d84-15b5-42c9-92c8-93ff7b26f496" />
 
 <img width="1037" height="617" alt="Captura de pantalla 2026-11-21 011237" src="https://github.com/user-attachments/assets/9784ad65-2ab9-4917-ba12-1a4497f76bcd" />
 
