@@ -50,31 +50,15 @@ Se reforzó la validación del teléfono para exigir al menos seis dígitos y re
 También se verifican desde PHP las longitudes máximas del nombre, teléfono, correo y ciudad.
 
 ## Capturas de pantalla
-
 ### Inicio de sesión
-
-![Formulario de inicio de sesión](capturas/login.png)
-
+<img width="1365" height="654" alt="Captura de pantalla 2026-11-21 000134" src="https://github.com/user-attachments/assets/82812138-0981-4f20-96d4-d4fb94f1a2b6" />
 ### Registro de usuarios
-
-![Formulario de registro](capturas/registro.png)
-
+<img width="1365" height="663" alt="Captura de pantalla 2026-11-21 000145" src="https://github.com/user-attachments/assets/effbcfa9-027e-42f2-85df-a32d17a40319" />
 ### Panel principal, búsqueda y ordenamiento
-
-![Panel de contactos con búsqueda y ordenamiento](capturas/panel.png)
-
+<img width="1365" height="575" alt="image" src="https://github.com/user-attachments/assets/4e5c2d84-15b5-42c9-92c8-93ff7b26f496" />
 ### Creación o edición con categorías y favoritos
-
-![Formulario de contacto con categoría y favorito](capturas/contacto.png)
-
 ### Filtro de favoritos
-
-![Lista de contactos favoritos](capturas/favoritos.png)
-
 ### Confirmación de eliminación
-
-![Confirmación para eliminar un contacto](capturas/eliminar.png)
-
 ## Tecnologías utilizadas
 
 - PHP.
