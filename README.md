@@ -58,6 +58,15 @@ También se verifican desde PHP las longitudes máximas del nombre, teléfono, c
 <img width="1365" height="628" alt="Captura de pantalla 2026-11-21 000258" src="https://github.com/user-attachments/assets/9877ae5c-fdcf-40fd-a078-e81840637a28" />
 ### Creación o edición con categorías y favoritos
 
+<img width="1365" height="629" alt="Captura de pantalla 2026-11-21 000341" src="https://github.com/user-attachments/assets/f8764c6f-45d5-4866-bcc1-b8912ef85843" />
+
+<img width="1365" height="654" alt="Captura de pantalla 2026-11-21 000349" src="https://github.com/user-attachments/assets/a5877d31-9cd5-495c-8597-198a8dafcc4d" />
+
+<img width="1364" height="602" alt="Captura de pantalla 2026-11-21 000422" src="https://github.com/user-attachments/assets/804c6cf0-92ac-4286-b806-d9a3fd0de613" />
+
+
+<img width="1365" height="625" alt="Captura de pantalla 2026-11-21 000411" src="https://github.com/user-attachments/assets/655ee9ea-eb7b-4ad6-8f81-516606f496aa" />
+
 <img width="1037" height="617" alt="Captura de pantalla 2026-11-21 011237" src="https://github.com/user-attachments/assets/9784ad65-2ab9-4917-ba12-1a4497f76bcd" />
 
 <img width="1348" height="588" alt="Captura de pantalla 2026-11-21 011224" src="https://github.com/user-attachments/assets/9c67c623-e888-418c-8bd8-1b3f638cf712" />
