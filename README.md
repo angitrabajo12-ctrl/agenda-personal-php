@@ -55,10 +55,24 @@ También se verifican desde PHP las longitudes máximas del nombre, teléfono, c
 ### Registro de usuarios
 <img width="1365" height="663" alt="Captura de pantalla 2026-11-21 000145" src="https://github.com/user-attachments/assets/effbcfa9-027e-42f2-85df-a32d17a40319" />
 ### Panel principal, búsqueda y ordenamiento
-<img width="1365" height="575" alt="image" src="https://github.com/user-attachments/assets/4e5c2d84-15b5-42c9-92c8-93ff7b26f496" />
+<img width="1365" height="628" alt="Captura de pantalla 2026-11-21 000258" src="https://github.com/user-attachments/assets/9877ae5c-fdcf-40fd-a078-e81840637a28" />
 ### Creación o edición con categorías y favoritos
+<img width="1365" height="575" alt="image" src="https://github.com/user-attachments/assets/4e5c2d84-15b5-42c9-92c8-93ff7b26f496" />
+
+<img width="1037" height="617" alt="Captura de pantalla 2026-11-21 011237" src="https://github.com/user-attachments/assets/9784ad65-2ab9-4917-ba12-1a4497f76bcd" />
+
+<img width="1348" height="588" alt="Captura de pantalla 2026-11-21 011224" src="https://github.com/user-attachments/assets/9c67c623-e888-418c-8bd8-1b3f638cf712" />
+
+<img width="1365" height="594" alt="Captura de pantalla 2026-11-21 011353" src="https://github.com/user-attachments/assets/8dc5d24f-a83a-4cc8-82a8-669cae59cd4e" />
+
 ### Filtro de favoritos
+<img width="1358" height="680" alt="Captura de pantalla 2026-11-21 011120" src="https://github.com/user-attachments/assets/39ce51fb-2e68-4501-85a6-5f90a71e8d83" />
+
 ### Confirmación de eliminación
+
+<img width="1365" height="575" alt="Captura de pantalla 2026-11-21 011432" src="https://github.com/user-attachments/assets/3158cd12-0fa7-4af9-9a4d-ffda9a6ad5bb" />
+
+
 ## Tecnologías utilizadas
 
 - PHP.
